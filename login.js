@@ -19,10 +19,17 @@ async function doLogin() {
     const data = await res.json();
 
     if (data.success) {
-      // เก็บข้อมูล session ไว้ใช้ในหน้าแสดงไฟล์
+      // เก็บข้อมูล session ไว้ใช้ในหน้าแสดงไฟล์ / หน้าแอดมิน
+      sessionStorage.setItem("userCode", code);
       sessionStorage.setItem("userName", data.name);
       sessionStorage.setItem("userCategories", JSON.stringify(data.categories));
-      window.location.href = "files.html";
+      sessionStorage.setItem("userRole", data.role || "user");
+
+      if (data.role === "admin") {
+        window.location.href = "admin.html";
+      } else {
+        window.location.href = "files.html";
+      }
     } else {
       errorMsg.textContent = data.message || "เข้าสู่ระบบไม่สำเร็จ";
     }
