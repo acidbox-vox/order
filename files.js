@@ -1,7 +1,6 @@
 const userName = sessionStorage.getItem("userName");
 const userCategories = JSON.parse(sessionStorage.getItem("userCategories") || "[]");
 
-// ถ้ายังไม่ได้ล็อกอิน ให้เด้งกลับไปหน้า login
 if (!userName) {
   window.location.href = "index.html";
 }
@@ -16,8 +15,11 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
 const categoryListEl = document.getElementById("categoryList");
 const fileAreaEl = document.getElementById("fileArea");
 
-function hasAccess(category) {
-  return userCategories.includes("all") || userCategories.includes(category);
+// เก็บลำดับการคลิกไล่ลึกลงไป เช่น [{id,name}, {id,name}, ...] ใช้ทำ breadcrumb
+let pathStack = [];
+
+function hasAccess(categoryName) {
+  return userCategories.includes("all") || userCategories.includes(categoryName);
 }
 
 async function loadCategories() {
@@ -30,7 +32,7 @@ async function loadCategories() {
       return;
     }
 
-    const visibleCategories = data.categories.filter(hasAccess);
+    const visibleCategories = data.categories.filter(c => hasAccess(c.name));
 
     if (visibleCategories.length === 0) {
       categoryListEl.innerHTML = `<p class="hint">ไม่มีหมวดหมู่ที่เข้าถึงได้</p>`;
@@ -41,11 +43,12 @@ async function loadCategories() {
     visibleCategories.forEach((cat) => {
       const btn = document.createElement("button");
       btn.className = "category-btn";
-      btn.textContent = cat;
+      btn.textContent = cat.name;
       btn.addEventListener("click", () => {
         document.querySelectorAll(".category-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
-        loadFiles(cat);
+        pathStack = [{ id: cat.id, name: cat.name }];
+        openFolder(cat.id);
       });
       categoryListEl.appendChild(btn);
     });
@@ -54,11 +57,40 @@ async function loadCategories() {
   }
 }
 
-async function loadFiles(category) {
-  fileAreaEl.innerHTML = `<p class="loading">กำลังโหลดไฟล์...</p>`;
+function renderBreadcrumb() {
+  const crumb = document.createElement("div");
+  crumb.className = "breadcrumb";
+
+  pathStack.forEach((item, idx) => {
+    const span = document.createElement("span");
+    span.textContent = item.name;
+    span.className = "crumb-item";
+    if (idx < pathStack.length - 1) {
+      span.addEventListener("click", () => {
+        pathStack = pathStack.slice(0, idx + 1);
+        openFolder(item.id);
+      });
+    } else {
+      span.classList.add("crumb-current");
+    }
+    crumb.appendChild(span);
+
+    if (idx < pathStack.length - 1) {
+      const sep = document.createElement("span");
+      sep.className = "crumb-sep";
+      sep.textContent = "/";
+      crumb.appendChild(sep);
+    }
+  });
+
+  return crumb;
+}
+
+async function openFolder(folderId) {
+  fileAreaEl.innerHTML = `<p class="loading">กำลังโหลด...</p>`;
 
   try {
-    const res = await fetch(`${API_URL}?action=getFiles&category=${encodeURIComponent(category)}`);
+    const res = await fetch(`${API_URL}?action=getFolderContents&folderId=${encodeURIComponent(folderId)}`);
     const data = await res.json();
 
     if (!data.success) {
@@ -66,15 +98,36 @@ async function loadFiles(category) {
       return;
     }
 
-    if (data.files.length === 0) {
-      fileAreaEl.innerHTML = `<p class="hint">ไม่มีไฟล์ในหมวดนี้</p>`;
+    fileAreaEl.innerHTML = "";
+    fileAreaEl.appendChild(renderBreadcrumb());
+
+    if (data.subfolders.length === 0 && data.files.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "hint";
+      empty.textContent = "โฟลเดอร์นี้ว่างเปล่า";
+      fileAreaEl.appendChild(empty);
       return;
     }
 
-    fileAreaEl.innerHTML = "";
     const grid = document.createElement("div");
     grid.className = "file-grid";
 
+    // โฟลเดอร์ย่อยแสดงก่อน คลิกแล้วไล่ลึกลงไปอีกชั้น
+    data.subfolders.forEach((sub) => {
+      const card = document.createElement("div");
+      card.className = "file-card folder-card";
+      card.innerHTML = `
+        <div class="file-name"><i class="folder-icon">📁</i> ${sub.name}</div>
+        <div class="file-size">โฟลเดอร์ย่อย</div>
+      `;
+      card.addEventListener("click", () => {
+        pathStack.push({ id: sub.id, name: sub.name });
+        openFolder(sub.id);
+      });
+      grid.appendChild(card);
+    });
+
+    // ไฟล์ในชั้นนี้
     data.files.forEach((file) => {
       const card = document.createElement("a");
       card.className = "file-card";
@@ -90,7 +143,7 @@ async function loadFiles(category) {
 
     fileAreaEl.appendChild(grid);
   } catch (err) {
-    fileAreaEl.innerHTML = `<p class="error-msg">โหลดไฟล์ไม่สำเร็จ</p>`;
+    fileAreaEl.innerHTML = `<p class="error-msg">โหลดข้อมูลไม่สำเร็จ</p>`;
   }
 }
 
