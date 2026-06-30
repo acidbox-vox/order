@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ไฟล์ทั้งหมด</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <span id="welcomeMsg"></span>
+    <button id="logoutBtn">ออกจากระบบ</button>
+  </header>
+
+  <div class="layout">
+    <nav id="categoryList" class="sidebar">
+      <p class="loading">กำลังโหลดหมวดหมู่...</p>
+    </nav>
+
+    <main id="fileArea" class="content">
+      <p class="hint">เลือกหมวดหมู่ทางซ้ายเพื่อดูไฟล์</p>
+    </main>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="files.js"></script>
+</body>
+</html>
