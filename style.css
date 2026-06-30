@@ -158,3 +158,38 @@ body {
   color: #888;
   font-size: 14px;
 }
+
+.breadcrumb {
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #666;
+}
+
+.crumb-item {
+  cursor: pointer;
+}
+
+.crumb-item:hover {
+  text-decoration: underline;
+}
+
+.crumb-current {
+  color: #222;
+  font-weight: 500;
+  cursor: default;
+  text-decoration: none;
+}
+
+.crumb-sep {
+  margin: 0 6px;
+  color: #aaa;
+}
+
+.folder-card {
+  cursor: pointer;
+  background: #fafbff;
+}
+
+.folder-icon {
+  font-style: normal;
+}
