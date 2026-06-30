@@ -1,4 +1,5 @@
 const userName = sessionStorage.getItem("userName");
+const userRole = sessionStorage.getItem("userRole");
 const userCategories = JSON.parse(sessionStorage.getItem("userCategories") || "[]");
 
 if (!userName) {
@@ -6,6 +7,15 @@ if (!userName) {
 }
 
 document.getElementById("welcomeMsg").textContent = `ยินดีต้อนรับ ${userName}`;
+
+// admin จะเห็นปุ่ม "จัดการผู้ใช้" เพิ่มขึ้นมาในหน้านี้
+if (userRole === "admin") {
+  const adminLink = document.getElementById("adminLink");
+  adminLink.classList.remove("hidden");
+  adminLink.addEventListener("click", () => {
+    window.location.href = "admin.html";
+  });
+}
 
 document.getElementById("logoutBtn").addEventListener("click", () => {
   sessionStorage.clear();

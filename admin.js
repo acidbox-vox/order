@@ -8,6 +8,9 @@ if (!userCode || userRole !== "admin") {
 }
 
 document.getElementById("welcomeMsg").textContent = `แอดมิน: ${userName}`;
+document.getElementById("backToFilesBtn").addEventListener("click", () => {
+  window.location.href = "files.html";
+});
 document.getElementById("logoutBtn").addEventListener("click", () => {
   sessionStorage.clear();
   window.location.href = "index.html";

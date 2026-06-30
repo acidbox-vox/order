@@ -82,6 +82,15 @@ body {
   cursor: pointer;
 }
 
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.hidden {
+  display: none !important;
+}
+
 .layout {
   display: flex;
   min-height: calc(100vh - 60px);

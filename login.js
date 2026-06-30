@@ -25,11 +25,8 @@ async function doLogin() {
       sessionStorage.setItem("userCategories", JSON.stringify(data.categories));
       sessionStorage.setItem("userRole", data.role || "user");
 
-      if (data.role === "admin") {
-        window.location.href = "admin.html";
-      } else {
-        window.location.href = "files.html";
-      }
+      // ทุกคนเข้าหน้าแสดงไฟล์เหมือนกัน ถ้าเป็น admin จะมีเมนูจัดการผู้ใช้เพิ่มให้ในหน้านั้น
+      window.location.href = "files.html";
     } else {
       errorMsg.textContent = data.message || "เข้าสู่ระบบไม่สำเร็จ";
     }
