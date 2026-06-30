@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>จัดการผู้ใช้ - แอดมิน</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <span id="welcomeMsg"></span>
+    <button id="logoutBtn">ออกจากระบบ</button>
+  </header>
+
+  <div class="admin-layout">
+    <section class="admin-panel">
+      <div class="panel-header">
+        <h2>รายชื่อผู้ใช้</h2>
+        <button id="addUserBtn" class="primary-btn">+ เพิ่มผู้ใช้</button>
+      </div>
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th>รหัส</th>
+            <th>ชื่อ</th>
+            <th>สิทธิ์เข้าถึง</th>
+            <th>สถานะ</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="userTableBody">
+          <tr><td colspan="5" class="hint">กำลังโหลด...</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <!-- ฟอร์มแก้ไข/เพิ่มผู้ใช้ -->
+  <div id="userModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h3 id="modalTitle">แก้ไขสิทธิ์ผู้ใช้</h3>
+
+      <label class="field-label">รหัสล็อกอิน</label>
+      <input type="text" id="modalCode" placeholder="เช่น 1234">
+
+      <label class="field-label">ชื่อผู้ใช้</label>
+      <input type="text" id="modalName" placeholder="เช่น สมชาย">
+
+      <label class="field-label">หมวดหมู่ที่เข้าถึงได้</label>
+      <div id="modalCategories" class="checkbox-list">
+        <p class="hint">กำลังโหลดหมวดหมู่...</p>
+      </div>
+
+      <div class="modal-actions">
+        <button id="modalCancelBtn" class="secondary-btn">ยกเลิก</button>
+        <button id="modalSaveBtn" class="primary-btn">บันทึก</button>
+      </div>
+      <p id="modalError" class="error-msg"></p>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
