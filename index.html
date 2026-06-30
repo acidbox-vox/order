@@ -3,12 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>เข้าสู่ระบบ</title>
+<title>เข้าสู่ระบบ · ระบบจัดเก็บไฟล์</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+<button id="dm-btn" title="สลับ Dark/Light Mode">🌙</button>
+
+<div class="login-wrap">
+  <div class="brand">
+    <div class="brand-ring">📁</div>
+    <h1>ระบบจัดเก็บไฟล์</h1>
+    <p class="brand-sub">เข้าใช้งานด้วยรหัสที่ได้รับ<br>เพื่อดูไฟล์ตามสิทธิ์ของท่าน</p>
+    <div class="brand-pill">✦ เข้าสู่ระบบ</div>
+  </div>
+
   <div class="login-box">
-    <h1>เข้าสู่ระบบ</h1>
     <p class="subtitle">กรอกรหัสที่ได้รับเพื่อเข้าใช้งาน</p>
 
     <input type="text" id="codeInput" placeholder="กรอกรหัส" autocomplete="off">
@@ -17,7 +28,11 @@
     <p id="errorMsg" class="error-msg"></p>
   </div>
 
-  <script src="config.js"></script>
-  <script src="login.js"></script>
+  <p class="footer">ระบบจัดเก็บไฟล์</p>
+</div>
+
+<script src="config.js"></script>
+<script src="darkmode.js"></script>
+<script src="login.js"></script>
 </body>
 </html>
