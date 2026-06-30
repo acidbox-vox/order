@@ -8,7 +8,6 @@ if (!userName) {
 
 document.getElementById("welcomeMsg").textContent = `ยินดีต้อนรับ ${userName}`;
 
-// admin จะเห็นปุ่ม "จัดการผู้ใช้" เพิ่มขึ้นมาในหน้านี้
 if (userRole === "admin") {
   const adminLink = document.getElementById("adminLink");
   adminLink.classList.remove("hidden");
@@ -23,10 +22,11 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
 });
 
 const categoryListEl = document.getElementById("categoryList");
-const fileAreaEl = document.getElementById("fileArea");
+const contentBodyEl = document.getElementById("contentBody");
+const searchInput = document.getElementById("searchInput");
 
-// เก็บลำดับการคลิกไล่ลึกลงไป เช่น [{id,name}, {id,name}, ...] ใช้ทำ breadcrumb
-let pathStack = [];
+let pathStack = [];     // breadcrumb เวลาไล่ดูโฟลเดอร์ปกติ
+let searchTimer = null; // ใช้หน่วงเวลาตอนพิมพ์ค้นหา (debounce)
 
 function hasAccess(categoryName) {
   return userCategories.includes("all") || userCategories.includes(categoryName);
@@ -55,6 +55,7 @@ async function loadCategories() {
       btn.className = "category-btn";
       btn.textContent = cat.name;
       btn.addEventListener("click", () => {
+        searchInput.value = "";
         document.querySelectorAll(".category-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         pathStack = [{ id: cat.id, name: cat.name }];
@@ -97,32 +98,31 @@ function renderBreadcrumb() {
 }
 
 async function openFolder(folderId) {
-  fileAreaEl.innerHTML = `<p class="loading">กำลังโหลด...</p>`;
+  contentBodyEl.innerHTML = `<p class="loading">กำลังโหลด...</p>`;
 
   try {
     const res = await fetch(`${API_URL}?action=getFolderContents&folderId=${encodeURIComponent(folderId)}`);
     const data = await res.json();
 
     if (!data.success) {
-      fileAreaEl.innerHTML = `<p class="error-msg">${data.message}</p>`;
+      contentBodyEl.innerHTML = `<p class="error-msg">${data.message}</p>`;
       return;
     }
 
-    fileAreaEl.innerHTML = "";
-    fileAreaEl.appendChild(renderBreadcrumb());
+    contentBodyEl.innerHTML = "";
+    contentBodyEl.appendChild(renderBreadcrumb());
 
     if (data.subfolders.length === 0 && data.files.length === 0) {
       const empty = document.createElement("p");
       empty.className = "hint";
       empty.textContent = "โฟลเดอร์นี้ว่างเปล่า";
-      fileAreaEl.appendChild(empty);
+      contentBodyEl.appendChild(empty);
       return;
     }
 
     const grid = document.createElement("div");
     grid.className = "file-grid";
 
-    // โฟลเดอร์ย่อยแสดงก่อน คลิกแล้วไล่ลึกลงไปอีกชั้น
     data.subfolders.forEach((sub) => {
       const card = document.createElement("div");
       card.className = "file-card folder-card";
@@ -137,24 +137,27 @@ async function openFolder(folderId) {
       grid.appendChild(card);
     });
 
-    // ไฟล์ในชั้นนี้
     data.files.forEach((file) => {
-      const card = document.createElement("a");
-      card.className = "file-card";
-      card.href = file.url;
-      card.target = "_blank";
-      card.rel = "noopener noreferrer";
-      card.innerHTML = `
-        <div class="file-name">${file.name}</div>
-        <div class="file-size">${formatSize(file.size)}</div>
-      `;
-      grid.appendChild(card);
+      grid.appendChild(buildFileCard(file));
     });
 
-    fileAreaEl.appendChild(grid);
+    contentBodyEl.appendChild(grid);
   } catch (err) {
-    fileAreaEl.innerHTML = `<p class="error-msg">โหลดข้อมูลไม่สำเร็จ</p>`;
+    contentBodyEl.innerHTML = `<p class="error-msg">โหลดข้อมูลไม่สำเร็จ</p>`;
   }
+}
+
+function buildFileCard(file, showPath = false) {
+  const card = document.createElement("a");
+  card.className = "file-card";
+  card.href = file.url;
+  card.target = "_blank";
+  card.rel = "noopener noreferrer";
+  card.innerHTML = `
+    <div class="file-name">${file.name}</div>
+    <div class="file-size">${showPath ? file.path + " · " : ""}${formatSize(file.size)}</div>
+  `;
+  return card;
 }
 
 function formatSize(bytes) {
@@ -162,5 +165,52 @@ function formatSize(bytes) {
   if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
   return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }
+
+// ---------- ค้นหาไฟล์แบบ realtime ----------
+async function runSearch(query) {
+  contentBodyEl.innerHTML = `<p class="loading">กำลังค้นหา...</p>`;
+
+  try {
+    const categoriesParam = encodeURIComponent(userCategories.join(","));
+    const res = await fetch(`${API_URL}?action=search&query=${encodeURIComponent(query)}&categories=${categoriesParam}`);
+    const data = await res.json();
+
+    if (!data.success) {
+      contentBodyEl.innerHTML = `<p class="error-msg">${data.message}</p>`;
+      return;
+    }
+
+    contentBodyEl.innerHTML = "";
+
+    const heading = document.createElement("p");
+    heading.className = "hint";
+    heading.textContent = `ผลการค้นหา "${query}" — พบ ${data.results.length} ไฟล์`;
+    contentBodyEl.appendChild(heading);
+
+    if (data.results.length === 0) return;
+
+    const grid = document.createElement("div");
+    grid.className = "file-grid";
+    data.results.forEach((file) => grid.appendChild(buildFileCard(file, true)));
+    contentBodyEl.appendChild(grid);
+  } catch (err) {
+    contentBodyEl.innerHTML = `<p class="error-msg">ค้นหาไม่สำเร็จ</p>`;
+  }
+}
+
+searchInput.addEventListener("input", () => {
+  const query = searchInput.value.trim();
+  clearTimeout(searchTimer);
+
+  if (!query) {
+    // เคลียร์ช่องค้นหา กลับไปแสดงข้อความเริ่มต้น
+    document.querySelectorAll(".category-btn").forEach(b => b.classList.remove("active"));
+    contentBodyEl.innerHTML = `<p class="hint">เลือกหมวดหมู่ทางซ้ายเพื่อดูไฟล์ หรือพิมพ์ค้นหาด้านบน</p>`;
+    return;
+  }
+
+  // หน่วงเวลา 350ms หลังหยุดพิมพ์ ค่อยยิงค้นหาจริง กันยิง API รัวเกินไป
+  searchTimer = setTimeout(() => runSearch(query), 350);
+});
 
 loadCategories();

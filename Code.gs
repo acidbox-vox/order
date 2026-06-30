@@ -27,6 +27,8 @@ function doGet(e) {
       result = getCategories();
     } else if (action === "getFolderContents") {
       result = getFolderContents(e.parameter.folderId);
+    } else if (action === "search") {
+      result = searchFiles(e.parameter.query, e.parameter.categories);
     } else {
       result = { success: false, message: "ไม่รู้จัก action นี้" };
     }
@@ -188,6 +190,71 @@ function getFolderContents(folderId) {
     subfolders: subfolders,
     files: fileList
   };
+}
+
+/**
+ * ค้นหาไฟล์จากชื่อ ไล่ทุกชั้นย่อยใน Files_Root
+ * query           : คำค้นหา (ค้นแบบ "มีคำนี้อยู่ในชื่อ" ไม่สนตัวพิมพ์เล็ก/ใหญ่)
+ * allowedCategoriesCsv : รายชื่อหมวดที่ผู้ใช้คนนี้มีสิทธิ์เห็น คั่นด้วย comma เช่น "1-คำสั่งสนาม,4-ระเบียบ"
+ *                        หรือ "all" ถ้าเห็นได้ทุกหมวด — ป้องกันไม่ให้ค้นหาเจอไฟล์นอกสิทธิ์
+ * คืนค่า: { success, results: [{ name, url, size, updated, category, path }] }
+ */
+function searchFiles(query, allowedCategoriesCsv) {
+  if (!query || query.trim().length < 1) {
+    return { success: true, results: [] };
+  }
+
+  const q = query.trim().toLowerCase();
+  const allowAll = String(allowedCategoriesCsv || "").split(",").map(c => c.trim()).includes("all");
+  const allowedSet = String(allowedCategoriesCsv || "").split(",").map(c => c.trim()).filter(c => c);
+
+  const rootFolder = DriveApp.getFolderById(ROOT_FOLDER_ID);
+  const topFolders = rootFolder.getFolders();
+  const results = [];
+  const MAX_RESULTS = 50; // กันค้นหาแล้วช้าเกินไปถ้าไฟล์เยอะมาก
+
+  while (topFolders.hasNext()) {
+    const topFolder = topFolders.next();
+    const categoryName = topFolder.getName();
+
+    if (!allowAll && allowedSet.indexOf(categoryName) === -1) continue; // ไม่มีสิทธิ์ ข้ามหมวดนี้ไปเลย
+
+    searchInFolder(topFolder, q, categoryName, categoryName, results, MAX_RESULTS);
+    if (results.length >= MAX_RESULTS) break;
+  }
+
+  return { success: true, results: results };
+}
+
+/**
+ * ฟังก์ชันช่วยของ searchFiles ไล่ค้นหาแบบ recursive ทีละโฟลเดอร์
+ */
+function searchInFolder(folder, query, categoryName, pathLabel, results, maxResults) {
+  if (results.length >= maxResults) return;
+
+  const fileIter = folder.getFiles();
+  while (fileIter.hasNext()) {
+    if (results.length >= maxResults) return;
+    const file = fileIter.next();
+    if (file.getName().toLowerCase().indexOf(query) !== -1) {
+      results.push({
+        name: file.getName(),
+        url: file.getUrl(),
+        downloadUrl: "https://drive.google.com/uc?export=download&id=" + file.getId(),
+        size: file.getSize(),
+        updated: file.getLastUpdated(),
+        category: categoryName,
+        path: pathLabel
+      });
+    }
+  }
+
+  const subFolderIter = folder.getFolders();
+  while (subFolderIter.hasNext()) {
+    if (results.length >= maxResults) return;
+    const sub = subFolderIter.next();
+    searchInFolder(sub, query, categoryName, pathLabel + " / " + sub.getName(), results, maxResults);
+  }
 }
 
 /**
