@@ -26,6 +26,7 @@
     <main id="fileArea" class="content">
       <div class="search-bar">
         <input type="text" id="searchInput" placeholder="🔍 ค้นหาไฟล์จากชื่อ...">
+        <button id="uploadBtn" class="primary-btn hidden">+ อัปโหลดไฟล์</button>
       </div>
       <div id="contentBody">
         <p class="hint">เลือกหมวดหมู่ทางซ้ายเพื่อดูไฟล์ หรือพิมพ์ค้นหาด้านบน</p>
@@ -33,9 +34,27 @@
     </main>
   </div>
 
+  <input type="file" id="fileInput" class="hidden">
+
+  <!-- modal ตั้งชื่อไฟล์ก่อนอัปโหลด (เฉพาะ admin) -->
+  <div id="uploadModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h3>อัปโหลดไฟล์</h3>
+      <p class="hint" id="uploadTargetHint"></p>
+
+      <label class="field-label">ชื่อไฟล์ที่จะบันทึก</label>
+      <input type="text" id="uploadNameInput" placeholder="เช่น คำสั่งที่ 1-2569">
+
+      <div class="modal-actions">
+        <button id="uploadCancelBtn" class="secondary-btn">ยกเลิก</button>
+        <button id="uploadConfirmBtn" class="primary-btn">อัปโหลด</button>
+      </div>
+      <p id="uploadError" class="error-msg"></p>
+    </div>
+  </div>
+
   <script src="config.js"></script>
   <script src="darkmode.js"></script>
   <script src="files.js"></script>
 </body>
 </html>
-
