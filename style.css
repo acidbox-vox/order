@@ -66,15 +66,14 @@ body::after {
 }
 
 #dm-btn {
-  position: fixed; top: 14px; right: 18px; z-index: 9999;
-  width: 46px; height: 46px; border-radius: 50%;
-  background: var(--surface); border: 1.5px solid var(--border);
-  box-shadow: var(--shadow-hover); cursor: pointer;
+  width: 40px; height: 40px; border-radius: 10px;
+  background: var(--bg2); border: 1.5px solid var(--border);
+  cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  font-size: 20px; transition: transform .2s ease;
-  user-select: none;
+  font-size: 18px; transition: transform .2s ease, background .2s;
+  flex-shrink: 0;
 }
-#dm-btn:hover { transform: scale(1.13) rotate(18deg); }
+#dm-btn:hover { background: var(--surface-hover); transform: rotate(18deg); }
 
 /* ---------- หน้าล็อกอิน ---------- */
 .login-wrap {
