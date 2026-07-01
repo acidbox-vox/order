@@ -23,6 +23,8 @@ function doGet(e) {
   try {
     if (action === "checkLogin") {
       result = checkLogin(e.parameter.code);
+    } else if (action === "getGuestAccess") {
+      result = getGuestAccess();
     } else if (action === "getCategories") {
       result = getCategories();
     } else if (action === "getFolderContents") {
@@ -68,6 +70,8 @@ function doPost(e) {
       result = addUser(body.code, body.name, body.categories);
     } else if (action === "deleteUser") {
       result = deleteUser(body.code);
+    } else if (action === "uploadFile") {
+      result = uploadFile(body.folderId, body.fileName, body.mimeType, body.base64Data);
     } else {
       result = { success: false, message: "ไม่รู้จัก action นี้" };
     }
@@ -87,6 +91,21 @@ function isAdmin(code) {
   if (!code) return false;
   const result = checkLogin(code);
   return result.success && result.role === "admin";
+}
+
+/**
+ * ดึงสิทธิ์การเข้าถึงของ "เกส" จากแถวที่มี code = "GUEST" ใน Users_DB
+ * แอดมินสามารถปรับ categories ของแถวนี้ได้เหมือน user ทั่วไปผ่านหน้าแอดมิน
+ */
+function getGuestAccess() {
+  const result = checkLogin("GUEST");
+  if (result.success) {
+    return {
+      success: true,
+      categories: result.categories
+    };
+  }
+  return { success: false, message: "ยังไม่ได้ตั้งค่าสิทธิ์เกส กรุณาติดต่อแอดมิน" };
 }
 
 /**
@@ -254,6 +273,45 @@ function searchInFolder(folder, query, categoryName, pathLabel, results, maxResu
     if (results.length >= maxResults) return;
     const sub = subFolderIter.next();
     searchInFolder(sub, query, categoryName, pathLabel + " / " + sub.getName(), results, maxResults);
+  }
+}
+
+/**
+ * อัปโหลดไฟล์เข้าโฟลเดอร์ที่ระบุ พร้อมตั้งชื่อไฟล์ใหม่ตามที่ผู้ใช้กรอก (เฉพาะ admin)
+ * folderId   : id ของโฟลเดอร์ปลายทาง (โฟลเดอร์ที่กำลังเปิดดูอยู่)
+ * fileName   : ชื่อไฟล์ใหม่ที่ต้องการตั้ง (ไม่ต้องใส่นามสกุลก็ได้ จะเติมให้อัตโนมัติ)
+ * mimeType   : ชนิดไฟล์ เช่น "application/pdf"
+ * base64Data : เนื้อไฟล์ที่ encode เป็น base64 (ไม่รวม prefix "data:...;base64,")
+ */
+function uploadFile(folderId, fileName, mimeType, base64Data) {
+  if (!folderId || !fileName || !base64Data) {
+    return { success: false, message: "ข้อมูลไม่ครบ ไม่สามารถอัปโหลดได้" };
+  }
+
+  let folder;
+  try {
+    folder = DriveApp.getFolderById(folderId);
+  } catch (err) {
+    return { success: false, message: "ไม่พบโฟลเดอร์ปลายทาง" };
+  }
+
+  try {
+    const bytes = Utilities.base64Decode(base64Data);
+    const blob = Utilities.newBlob(bytes, mimeType || "application/octet-stream", fileName);
+    const file = folder.createFile(blob);
+    file.setName(fileName); // กันเผื่อ createFile เปลี่ยนชื่อเอง
+
+    return {
+      success: true,
+      message: "อัปโหลดสำเร็จ",
+      file: {
+        name: file.getName(),
+        url: file.getUrl(),
+        size: file.getSize()
+      }
+    };
+  } catch (err) {
+    return { success: false, message: "อัปโหลดไม่สำเร็จ: " + err.message };
   }
 }
 

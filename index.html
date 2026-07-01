@@ -15,15 +15,32 @@
   <div class="brand">
     <div class="brand-ring">📁</div>
     <h1>ระบบจัดเก็บไฟล์</h1>
-    <p class="brand-sub">เข้าใช้งานด้วยรหัสที่ได้รับ<br>เพื่อดูไฟล์ตามสิทธิ์ของท่าน</p>
-    <div class="brand-pill">✦ เข้าสู่ระบบ</div>
+    <p class="brand-sub">เลือกวิธีเข้าใช้งานด้านล่าง</p>
   </div>
 
   <div class="login-box">
-    <p class="subtitle">กรอกรหัสที่ได้รับเพื่อเข้าใช้งาน</p>
 
-    <input type="text" id="codeInput" placeholder="กรอกรหัส" autocomplete="off">
-    <button id="loginBtn">เข้าสู่ระบบ</button>
+    <!-- ปุ่มหลัก 2 อัน -->
+    <div id="modeSelect">
+      <button id="guestBtn" class="mode-btn">
+        <span class="mode-icon">👤</span>
+        <span class="mode-label">เข้าใช้งานแบบเกส</span>
+        <span class="mode-sub">ไม่ต้องกรอกรหัส</span>
+      </button>
+      <button id="codeBtn" class="mode-btn mode-btn-outline">
+        <span class="mode-icon">🔑</span>
+        <span class="mode-label">มีรหัสเข้าใช้งาน</span>
+        <span class="mode-sub">กรอกรหัสที่ได้รับ</span>
+      </button>
+    </div>
+
+    <!-- ช่องกรอกรหัส (ซ่อนไว้ก่อน) -->
+    <div id="codeSection" class="hidden">
+      <button id="backBtn" class="back-btn">← กลับ</button>
+      <p class="subtitle" style="margin-bottom:16px;">กรอกรหัสที่ได้รับเพื่อเข้าใช้งาน</p>
+      <input type="text" id="codeInput" placeholder="กรอกรหัส" autocomplete="off">
+      <button id="loginBtn">เข้าสู่ระบบ</button>
+    </div>
 
     <p id="errorMsg" class="error-msg"></p>
   </div>

@@ -71,7 +71,7 @@ function renderUserTable() {
     const categoryText = u.categories.includes("all") ? "ทั้งหมด" : u.categories.join(", ") || "-";
 
     tr.innerHTML = `
-      <td>${u.code}</td>
+      <td>${u.code}${u.code === "GUEST" ? ' <span class="guest-badge">เกส</span>' : ""}</td>
       <td>${u.name}</td>
       <td>${categoryText}</td>
       <td>${u.status}</td>
@@ -83,13 +83,16 @@ function renderUserTable() {
     editBtn.textContent = "แก้ไข";
     editBtn.addEventListener("click", () => openModal(u));
 
-    const delBtn = document.createElement("button");
-    delBtn.className = "link-btn danger";
-    delBtn.textContent = "ลบ";
-    delBtn.addEventListener("click", () => removeUser(u.code));
-
     tr.querySelector(".row-actions").appendChild(editBtn);
-    tr.querySelector(".row-actions").appendChild(delBtn);
+
+    // ปุ่มลบ: ถ้าเป็น GUEST ห้ามลบ
+    if (u.code !== "GUEST") {
+      const delBtn = document.createElement("button");
+      delBtn.className = "link-btn danger";
+      delBtn.textContent = "ลบ";
+      delBtn.addEventListener("click", () => removeUser(u.code));
+      tr.querySelector(".row-actions").appendChild(delBtn);
+    }
     userTableBody.appendChild(tr);
   });
 }
