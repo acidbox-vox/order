@@ -197,6 +197,8 @@ function getFolderContents(folderId) {
       name: file.getName(),
       url: file.getUrl(),
       downloadUrl: "https://drive.google.com/uc?export=download&id=" + file.getId(),
+      thumbnailUrl: "https://drive.google.com/thumbnail?id=" + file.getId() + "&sz=w400",
+      mimeType: file.getMimeType(),
       size: file.getSize(),
       updated: file.getLastUpdated()
     });
@@ -260,6 +262,8 @@ function searchInFolder(folder, query, categoryName, pathLabel, results, maxResu
         name: file.getName(),
         url: file.getUrl(),
         downloadUrl: "https://drive.google.com/uc?export=download&id=" + file.getId(),
+        thumbnailUrl: "https://drive.google.com/thumbnail?id=" + file.getId() + "&sz=w400",
+        mimeType: file.getMimeType(),
         size: file.getSize(),
         updated: file.getLastUpdated(),
         category: categoryName,

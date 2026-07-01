@@ -159,16 +159,64 @@ async function openFolder(folderId) {
   }
 }
 
+function getFileIcon(mimeType) {
+  if (!mimeType) return { icon: "📄", color: "#6b7280" };
+  if (mimeType.includes("pdf"))                        return { icon: "📕", color: "#ef4444" };
+  if (mimeType.includes("word") || mimeType.includes("document"))
+                                                       return { icon: "📘", color: "#2563eb" };
+  if (mimeType.includes("sheet") || mimeType.includes("excel") || mimeType.includes("csv"))
+                                                       return { icon: "📗", color: "#10b981" };
+  if (mimeType.includes("presentation") || mimeType.includes("powerpoint"))
+                                                       return { icon: "📙", color: "#f59e0b" };
+  if (mimeType.startsWith("image/"))                   return { icon: "🖼️", color: "#8b5cf6" };
+  if (mimeType.startsWith("video/"))                   return { icon: "🎬", color: "#ec4899" };
+  if (mimeType.startsWith("audio/"))                   return { icon: "🎵", color: "#06b6d4" };
+  if (mimeType.includes("zip") || mimeType.includes("compressed"))
+                                                       return { icon: "🗜️", color: "#78716c" };
+  return { icon: "📄", color: "#6b7280" };
+}
+
 function buildFileCard(file, showPath = false) {
   const card = document.createElement("a");
-  card.className = "file-card";
+  card.className = "file-card file-card-preview";
   card.href = file.url;
   card.target = "_blank";
   card.rel = "noopener noreferrer";
-  card.innerHTML = `
+
+  const { icon, color } = getFileIcon(file.mimeType);
+
+  // ส่วนพรีวิวด้านบน
+  const preview = document.createElement("div");
+  preview.className = "card-preview";
+  preview.style.setProperty("--file-color", color);
+
+  if (file.thumbnailUrl) {
+    const img = document.createElement("img");
+    img.src = file.thumbnailUrl;
+    img.alt = file.name;
+    img.className = "card-thumb";
+    img.onerror = () => {
+      // โหลดรูปไม่ได้ → แสดงไอคอนแทน
+      img.remove();
+      preview.classList.add("card-preview-icon");
+      preview.textContent = icon;
+    };
+    preview.appendChild(img);
+  } else {
+    preview.classList.add("card-preview-icon");
+    preview.textContent = icon;
+  }
+
+  // ส่วนชื่อและขนาดด้านล่าง
+  const info = document.createElement("div");
+  info.className = "card-info";
+  info.innerHTML = `
     <div class="file-name">${file.name}</div>
     <div class="file-size">${showPath ? file.path + " · " : ""}${formatSize(file.size)}</div>
   `;
+
+  card.appendChild(preview);
+  card.appendChild(info);
   return card;
 }
 
