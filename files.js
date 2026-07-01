@@ -1,5 +1,6 @@
 const userName = sessionStorage.getItem("userName");
 const userRole = sessionStorage.getItem("userRole");
+const userCode = sessionStorage.getItem("userCode");
 const userCategories = JSON.parse(sessionStorage.getItem("userCategories") || "[]");
 
 if (!userName) {
@@ -24,9 +25,18 @@ document.getElementById("logoutBtn").addEventListener("click", () => {
 const categoryListEl = document.getElementById("categoryList");
 const contentBodyEl = document.getElementById("contentBody");
 const searchInput = document.getElementById("searchInput");
+const uploadBtn = document.getElementById("uploadBtn");
+const fileInput = document.getElementById("fileInput");
+const uploadModal = document.getElementById("uploadModal");
+const uploadTargetHint = document.getElementById("uploadTargetHint");
+const uploadNameInput = document.getElementById("uploadNameInput");
+const uploadConfirmBtn = document.getElementById("uploadConfirmBtn");
+const uploadCancelBtn = document.getElementById("uploadCancelBtn");
+const uploadError = document.getElementById("uploadError");
 
 let pathStack = [];     // breadcrumb เวลาไล่ดูโฟลเดอร์ปกติ
 let searchTimer = null; // ใช้หน่วงเวลาตอนพิมพ์ค้นหา (debounce)
+let pendingFile = null; // ไฟล์ที่เลือกไว้รออัปโหลด
 
 function hasAccess(categoryName) {
   return userCategories.includes("all") || userCategories.includes(categoryName);
@@ -99,6 +109,8 @@ function renderBreadcrumb() {
 
 async function openFolder(folderId) {
   contentBodyEl.innerHTML = `<p class="loading">กำลังโหลด...</p>`;
+  if (userRole === "admin") uploadBtn.classList.remove("hidden");
+  else uploadBtn.classList.add("hidden");
 
   try {
     const res = await fetch(`${API_URL}?action=getFolderContents&folderId=${encodeURIComponent(folderId)}`);
@@ -201,6 +213,7 @@ async function runSearch(query) {
 searchInput.addEventListener("input", () => {
   const query = searchInput.value.trim();
   clearTimeout(searchTimer);
+  uploadBtn.classList.add("hidden"); // ตอนค้นหา ไม่รู้ว่าจะอัปโหลดเข้าโฟลเดอร์ไหน เลยซ่อนไว้ก่อน
 
   if (!query) {
     // เคลียร์ช่องค้นหา กลับไปแสดงข้อความเริ่มต้น
@@ -211,6 +224,99 @@ searchInput.addEventListener("input", () => {
 
   // หน่วงเวลา 350ms หลังหยุดพิมพ์ ค่อยยิงค้นหาจริง กันยิง API รัวเกินไป
   searchTimer = setTimeout(() => runSearch(query), 350);
+});
+
+// ---------- อัปโหลดไฟล์ (เฉพาะ admin) ----------
+uploadBtn.addEventListener("click", () => {
+  fileInput.value = "";
+  fileInput.click();
+});
+
+fileInput.addEventListener("change", () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  pendingFile = file;
+  const currentFolder = pathStack[pathStack.length - 1];
+  uploadTargetHint.textContent = `จะบันทึกเข้าโฟลเดอร์: ${pathStack.map(p => p.name).join(" / ")}`;
+
+  // ตั้งชื่อเริ่มต้นให้ตรงกับไฟล์ที่เลือก (ตัดนามสกุลออก ผู้ใช้แก้ไขได้)
+  const dotIndex = file.name.lastIndexOf(".");
+  const baseName = dotIndex > 0 ? file.name.substring(0, dotIndex) : file.name;
+  uploadNameInput.value = baseName;
+  uploadError.textContent = "";
+
+  uploadModal.classList.remove("hidden");
+});
+
+uploadCancelBtn.addEventListener("click", () => {
+  uploadModal.classList.add("hidden");
+  pendingFile = null;
+});
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // ตัด prefix "data:...;base64," ออก เหลือแต่เนื้อ base64 จริงๆ
+      const base64 = reader.result.split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+uploadConfirmBtn.addEventListener("click", async () => {
+  if (!pendingFile) return;
+
+  const currentFolder = pathStack[pathStack.length - 1];
+  let newName = uploadNameInput.value.trim();
+
+  if (!newName) {
+    uploadError.textContent = "กรุณาตั้งชื่อไฟล์";
+    return;
+  }
+
+  // ถ้าผู้ใช้ไม่ได้พิมพ์นามสกุลไว้ ให้เติมนามสกุลเดิมของไฟล์ที่เลือกให้อัตโนมัติ
+  const originalDot = pendingFile.name.lastIndexOf(".");
+  const originalExt = originalDot > 0 ? pendingFile.name.substring(originalDot) : "";
+  if (originalExt && !newName.toLowerCase().endsWith(originalExt.toLowerCase())) {
+    newName += originalExt;
+  }
+
+  uploadConfirmBtn.disabled = true;
+  uploadConfirmBtn.textContent = "กำลังอัปโหลด...";
+  uploadError.textContent = "";
+
+  try {
+    const base64Data = await fileToBase64(pendingFile);
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        action: "uploadFile",
+        adminCode: userCode,
+        folderId: currentFolder.id,
+        fileName: newName,
+        mimeType: pendingFile.type || "application/octet-stream",
+        base64Data: base64Data
+      })
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      uploadModal.classList.add("hidden");
+      pendingFile = null;
+      openFolder(currentFolder.id); // โหลดรายการไฟล์ใหม่ ให้เห็นไฟล์ที่เพิ่งอัปโหลดทันที
+    } else {
+      uploadError.textContent = data.message || "อัปโหลดไม่สำเร็จ";
+    }
+  } catch (err) {
+    uploadError.textContent = "เชื่อมต่อระบบไม่ได้ ลองใหม่อีกครั้ง";
+  } finally {
+    uploadConfirmBtn.disabled = false;
+    uploadConfirmBtn.textContent = "อัปโหลด";
+  }
 });
 
 loadCategories();
